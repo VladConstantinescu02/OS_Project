@@ -5,50 +5,83 @@
 #include <time.h>
 
 
-void printFileProperties(char *filename) {    
+void printFileProperties(char *input) {    
 
     struct stat info;
+    char expression;
 
-    if(stat(filename, &info) != 0) {
+    if(stat(input, &info) != 0) {
         perror("stat() error");
         return;
-    } else {  
-    
-    long int size_of_file;
-    
-    printf("\nFile access rights:");
-    if(info.st_mode & R_OK)
-        printf(" read");
-    if(info.st_mode & W_OK)
-        printf(" write");
-    if(info.st_mode & X_OK)
-        printf(" execute\n");
+    } 
 
-    size_of_file = info.st_size;
+    printf("File properties:\n n -> name of the file\n a -> access rights\n d -> file size;\n h -> number of hardlinks\n m -> time of last modification\n");
+    printf("What do you want to see? operation; ");
+    scanf("%c", &expression);
+    switch (expression)
+    {
+    case 'n':
+        printf("\nName of the file is: %s", input);
+        printf("\n");
+        break;
+    
+    case 'a':
+         printf("\nFile access rights:");
+            if(info.st_mode & R_OK)
+                printf(" read");
+            if(info.st_mode & W_OK)
+                printf(" write");
+            if(info.st_mode & X_OK)
+                printf(" execute\n");
+        break;
+
+    case 'd':
+        long int size_of_file;
+        size_of_file = info.st_size;
         printf("\nThe size of the file: %ld  bytes",size_of_file);
         printf("\n");
+        break;
 
+    case 'h':
         printf("Number of hardlinks: %ld", info.st_nlink);
         printf("\n");
-    }    
-}
+        break;
 
-void createSymLink(char *file_name, char * link_name) {    
+    case 'm':
+        printf("The last modified on: %s", ctime(&info.st_mtime));
+        printf("\n");
+        break;
 
-    int sym_link;
-
-    sym_link =symlink(file_name,link_name);
-
-    if(sym_link == 0)
-    printf("Link was created succesfully");
+        default:
+        printf("Invalid operant please try one from the provided list.");
+        break;
     }
 
 
-int main() {    
 
-    printFileProperties("ex1.txt");
+}
 
-    createSymLink("ex1.txt", "ex1_link_s");
 
+
+
+int main() {  
+
+    
+
+    char filename[100];
+    printf("Enter the file name: ");
+    fgets(filename, 100, stdin);
+
+    // Remove the newline character from the end of the filename
+    int i = 0;
+    while (filename[i] != '\n') {
+        i++;
+    }
+    filename[i] = '\0';
+
+    printFileProperties(filename);
     return 0;
+
+
+
 }
