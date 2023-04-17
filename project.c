@@ -3,6 +3,7 @@
 #include <stdbool.h>
 #include <unistd.h>
 #include <sys/stat.h>
+#include <dirent.h>
 #include <time.h>
 
 
@@ -198,7 +199,7 @@ void printSymLinkProperties(char *link) {
             printf("error Unable to locate target");
             
         } else {
-        printf("The size of the tahget is: %lld", (long long)target.st_size);
+        printf("The size of the target is: %lld", (long long)target.st_size);
         }
         printf("\n");
         break;
@@ -218,6 +219,121 @@ void printSymLinkProperties(char *link) {
 
         
 
+}
+
+void printDirProperties(char *dirname) {
+       char expression;
+
+    int Cfiles = 0;
+
+    DIR *directory;
+    struct dirent *entry;
+
+    struct stat dirstat;
+
+    if (stat(dirname, &dirstat) != 0) {
+        perror("stat");
+        return;
+    }
+
+    
+
+    printf("File properties:\n n -> directory name\n a -> access rights\n d -> size of the directory;\n c -> number of c files\n");
+    printf("What do you want to see? operation; ");
+    scanf(" %c", &expression);
+   
+   switch (expression) {
+
+   case 'n':
+        printf("\nName of the diectory is: %s", dirname);
+        printf("\n");
+   break;
+
+   case 'd':
+        if(S_ISDIR(dirstat.st_mode)) {
+        printf("Size of directory is %lld in bytes", (long long)dirstat.st_size);
+        printf("\n");
+    }
+   break;
+
+   case 'a':
+        printf("\nLink access rights:\n");
+        printf("For owner:\n");
+            if(dirstat.st_mode & S_IRUSR)
+                printf("Read -> yes");
+                else
+                printf("Read -> no");
+                printf("\n");
+            if(dirstat.st_mode & S_IWUSR)
+                printf("Write -> yes");
+                else
+                printf("Write -> no");
+                printf("\n");
+            if(dirstat.st_mode & S_IXUSR)
+                printf("Execute -> yes");
+                else
+                printf("Execute -> no");
+                printf("\n");
+                printf("For group:\n");
+            if(dirstat.st_mode & S_IRGRP)
+                printf("Read -> yes");
+                else
+                printf("Read -> no");
+                printf("\n");
+            if(dirstat.st_mode & S_IWGRP)
+                printf("Write -> yes");
+                else
+                printf("Write -> no");
+                printf("\n");
+            if(dirstat.st_mode & S_IXGRP)
+                printf("Execute -> yes");
+                else
+                printf("Execute -> no");
+                printf("\n");
+                printf("For other:\n");
+            if(dirstat.st_mode & S_IROTH)
+                printf("Read -> yes");
+                else
+                printf("Read -> no");
+                printf("\n");
+            if(dirstat.st_mode & S_IWOTH)
+                printf("Write -> yes");
+                else
+                printf("Write -> no");
+                printf("\n");
+            if(dirstat.st_mode & S_IXOTH)
+                printf("Execute -> yes");
+                else
+                printf("Execute -> no");
+                printf("\n");
+
+   break;
+
+   case 'c':
+   directory = opendir(dirname);
+
+    if(directory == NULL) {
+            printf("error Unable to read directory\n");
+            return;
+    } else {
+        printf("Directory is opened!\n");
+        return;
+    }
+
+       while( (entry=readdir(directory)) && (readdir(directory)!=NULL) )
+    {
+        char cpy[100];
+
+        strcpy(cpy,entry->d_name);
+        if ((strcmp(&cpy[strlen(entry->d_name)-1],"c")) && (strcmp(&cpy[strlen(entry->d_name)-2],".")))      
+        
+        Cfiles++;
+    }
+    printf("Number of C files is %d\n",Cfiles);
+    closedir(directory);
+    break;
+        
+   }
 }
 
 
@@ -245,6 +361,7 @@ int main(int argc, char *argv[]) {
         printf("\n");
     }   else if (S_ISDIR(stats.st_mode)) {
         printf("%s is a directory link", argv[i]);
+        printDirProperties(argv[i]);
         printf("\n");
     }
 
