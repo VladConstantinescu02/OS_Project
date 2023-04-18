@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 #include <stdbool.h>
 #include <unistd.h>
 #include <sys/stat.h>
@@ -11,11 +12,15 @@ void printFileProperties(char *input) {
     struct stat info;
     char expression;
 
-    if (lstat(input, &info) != 0) {
-        perror("stat");
-        return;
+    pid_t  cpid1; 
+    cpd1 = fork();
+    if (cpid1 == -1) {
+        perror("fork");
+        exit(1);
     }
 
+    if (cpid1 == 0)
+    {
     printf("File properties:\n n -> name of the file\n a -> access rights\n d -> file size;\n h -> number of hardlinks\n m -> time of last modification\n l -> create symbolic link\n");
     printf("What do you want to see? operation; ");
     scanf(" %c", &expression);
@@ -114,6 +119,15 @@ void printFileProperties(char *input) {
         printf("Invalid operant please try one from the provided list.");
         break;
     }
+    exit(1);
+    } 
+
+    if (lstat(input, &info) != 0) {
+        perror("stat");
+        return;
+    }
+
+    
 
 }
 
@@ -257,7 +271,7 @@ void printDirProperties(char *dirname) {
    break;
 
    case 'a':
-        printf("\nLink access rights:\n");
+        printf("\nDirectory access rights:\n");
         printf("For owner:\n");
             if(dirstat.st_mode & S_IRUSR)
                 printf("Read -> yes");
@@ -338,7 +352,10 @@ void printDirProperties(char *dirname) {
 
 
 
-int main(int argc, char *argv[]) {   
+int main(int argc, char *argv[]) { 
+    pid_t cpid, w;
+    int wstatus;
+
     struct stat stats;
      if (argc < 2) {
         printf("Usage: %s <filename>\n", argv[0]);
@@ -350,20 +367,23 @@ int main(int argc, char *argv[]) {
         perror("stat");
         return 1;
     } else if (S_ISREG(stats.st_mode)) {  
-        printf("%s is a regular file", argv[i]);
+      /*  printf("%s is a regular file", argv[i]);
         printf("\n");
         printFileProperties(argv[i]);
         printf("\n");
+        */
     }   else if (S_ISLNK(stats.st_mode)) {
-        printf("%s is a symbolic link", argv[i]);
+      /*  printf("%s is a symbolic link", argv[i]);
         printf("\n");
         printSymLinkProperties(argv[i]);
-        printf("\n");
+        printf("\n"); */
     }   else if (S_ISDIR(stats.st_mode)) {
-        printf("%s is a directory link", argv[i]);
+      /*  printf("%s is a directory link", argv[i]);
         printDirProperties(argv[i]);
         printf("\n");
-    }
+
+        */
+    }   
 
     return 0;
 }
