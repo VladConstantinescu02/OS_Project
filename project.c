@@ -7,25 +7,19 @@
 #include <dirent.h>
 #include <time.h>
 
-
 void printFileProperties(char *input) {    
     struct stat info;
     char expression;
 
-    pid_t  cpid1; 
-    cpd1 = fork();
-    if (cpid1 == -1) {
-        perror("fork");
-        exit(1);
+    if (lstat(input, &info) != 0) {
+        perror("stat");
+        return;
     }
 
-    if (cpid1 == 0)
-    {
     printf("File properties:\n n -> name of the file\n a -> access rights\n d -> file size;\n h -> number of hardlinks\n m -> time of last modification\n l -> create symbolic link\n");
     printf("What do you want to see? operation; ");
     scanf(" %c", &expression);
-    switch (expression)
-    {
+    switch (expression) {
     case 'n':
         printf("\nName of the file is: %s", input);
         printf("\n");
@@ -119,15 +113,6 @@ void printFileProperties(char *input) {
         printf("Invalid operant please try one from the provided list.");
         break;
     }
-    exit(1);
-    } 
-
-    if (lstat(input, &info) != 0) {
-        perror("stat");
-        return;
-    }
-
-    
 
 }
 
@@ -230,6 +215,7 @@ void printSymLinkProperties(char *link) {
         printf("Invalid operant please try one from the provided list.");
         break;
     }
+
 
         
 
@@ -353,8 +339,7 @@ void printDirProperties(char *dirname) {
 
 
 int main(int argc, char *argv[]) { 
-    pid_t cpid, w;
-    int wstatus;
+    
 
     struct stat stats;
      if (argc < 2) {
@@ -362,28 +347,71 @@ int main(int argc, char *argv[]) {
         return 1;
     } 
 
-    for(int i=0; i < argc; i++)
+    for(int i=1; i < argc; i++)
     if (lstat(argv[i], &stats) != 0) {
         perror("stat");
         return 1;
-    } else if (S_ISREG(stats.st_mode)) {  
-      /*  printf("%s is a regular file", argv[i]);
+    } else {
+
+        if (S_ISREG(stats.st_mode)) {  
+        
+        pid_t cpid1;
+        cpid1 = fork();
+        if (cpid1 < 0) {
+        printf("error : Failed to create second child process");
+        exit(1);
+        }
+        if(cpid1 == 0)  { // child process
+        printf("%s is a regular file", argv[i]);
         printf("\n");
         printFileProperties(argv[i]);
         printf("\n");
-        */
-    }   else if (S_ISLNK(stats.st_mode)) {
-      /*  printf("%s is a symbolic link", argv[i]);
+        }
+
+        pid_t cpid2;
+        if(strlen(argv[i])-1 == 'c' && strlen(argv[i])-2 == '.') {
+        cpid2 = fork();
+        }
+        if (cpid2 < 0) {
+        printf("error : Failed to create second child process");
+        exit(1);
+        }
+        if (cpid2 == 0) { // child process
+            printf("Is a c file\n");
+        }
+
+            wait(0);
+            wait(0);
+
+
+    }   
+        if (S_ISLNK(stats.st_mode)) {
+        printf("%s is a symbolic link", argv[i]);
         printf("\n");
         printSymLinkProperties(argv[i]);
-        printf("\n"); */
-    }   else if (S_ISDIR(stats.st_mode)) {
-      /*  printf("%s is a directory link", argv[i]);
+        printf("\n"); 
+
+    }   
+        if (S_ISDIR(stats.st_mode)) {
+
+        pid_t cpid3;
+        cpid3 = fork();
+        if (cpid3 < 0) {
+        printf("error : Failed to create second child process");
+        exit(1);
+        }
+
+        if(cpid3 == 0)  { // child process
+        printf("%s is a directory link\n", argv[i]);
         printDirProperties(argv[i]);
         printf("\n");
+        } 
 
-        */
-    }   
+        wait(0);
+
+        }
+    
+    }
 
     return 0;
 }
