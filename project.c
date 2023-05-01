@@ -353,65 +353,58 @@ int main(int argc, char *argv[]) {
         return 1;
     } else {
 
-        if (S_ISREG(stats.st_mode)) {  
+        if (S_ISREG(stats.st_mode)) { 
+
+                pid_t child1, child2;
+                if (!(child1 = fork())) {
+                // first child
+                printf("%s is a regular file", argv[i]);
+                printf("\n");
+                printFileProperties(argv[i]);
+                printf("\n");
+                exit(0);
+                } else if (!(child2 = fork())) {
+                    // second child
+                    if (strstr(argv[i], ".c") != NULL) {
+                    printf("Is a c file\n");
+                    } 
+                    exit(0);
+                } else {
+                    // parent
+                    wait(&child1);
+                    wait(&child2);
+            }
         
-        pid_t cpid1;
-        cpid1 = fork();
-        if (cpid1 < 0) {
-        printf("error : Failed to create second child process");
-        exit(1);
-        }
-        if(cpid1 == 0)  { // child process
-        printf("%s is a regular file", argv[i]);
-        printf("\n");
-        printFileProperties(argv[i]);
-        printf("\n");
-        }
-
-        pid_t cpid2;
-        if(strlen(argv[i])-1 == 'c' && strlen(argv[i])-2 == '.') {
-        cpid2 = fork();
-        }
-        if (cpid2 < 0) {
-        printf("error : Failed to create second child process");
-        exit(1);
-        }
-        if (cpid2 == 0) { // child process
-            printf("Is a c file\n");
-        }
-
-            wait(0);
-            wait(0);
-
-
-    }   
-        if (S_ISLNK(stats.st_mode)) {
-        printf("%s is a symbolic link", argv[i]);
-        printf("\n");
-        printSymLinkProperties(argv[i]);
-        printf("\n"); 
-
-    }   
+        }   
         if (S_ISDIR(stats.st_mode)) {
 
-        pid_t cpid3;
-        cpid3 = fork();
-        if (cpid3 < 0) {
-        printf("error : Failed to create second child process");
-        exit(1);
-        }
+                pid_t child3, child4;
+                if (!(child3 = fork())) {
+                // first child
+                printf("%s is a directory", argv[i]);
+                printf("\n");
+                printDirProperties(argv[i]);
+                printf("\n");
+                exit(0);
+                } else if (!(child4 = fork())) {
+                    // second child
+                    printf("Is directory file\n");
+                    exit(0);
+                } else {
+                    // parent
+                    wait(&child3);
+                    wait(&child4);
+            }
 
-        if(cpid3 == 0)  { // child process
-        printf("%s is a directory link\n", argv[i]);
-        printDirProperties(argv[i]);
-        printf("\n");
-        } 
+    } 
+        if (S_ISLNK(stats.st_mode)) {
+                printf("%s is a symbolic link", argv[i]);
+                printf("\n");
+                printSymLinkProperties(argv[i]);
+                printf("\n");          
+        }  
 
-        wait(0);
 
-        }
-    
     }
-
     return 0;
 }
