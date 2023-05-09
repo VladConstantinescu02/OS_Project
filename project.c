@@ -356,6 +356,7 @@ int main(int argc, char *argv[]) {
         if (S_ISREG(stats.st_mode)) { 
 
                 pid_t child1, child2;
+                 int pfd[2];
                 if (!(child1 = fork())) {
                 // first child
                 printf("%s is a regular file", argv[i]);
@@ -366,16 +367,29 @@ int main(int argc, char *argv[]) {
                 } else if (!(child2 = fork())) {
                     // second child
                     if (strstr(argv[i], ".c") != NULL) {
-                    printf("Is a .c file\n");
-                    //execlp("sh","count.sh","argv[i]",NULL);
+                
+                    if(pipe(pfd)<0) {
+	                    perror("Pipe creation error\n");
+	                    exit(1);
+	                    }
+                    close(pfd[0]);
+                    //write(pfd[1],buff,len);
+
+                    close(pfd[1]);
+                    exit(0);
+                    
                     } 
                     exit(0);
                 } else {
+                    close(pfd[1]);
+
+                    //read(pfd[0],buff,len);
+
+                    close(pfd[0]);
                     // parent
                     wait(&child1);
-                    //printf("The process with PID %d has ended:", getpid());
                     wait(&child2);
-                    //printf("The process with PID %d has ended:", getpid());
+    
             }
         
         }   
@@ -413,7 +427,9 @@ int main(int argc, char *argv[]) {
                 } else if (!(child6 = fork())) {
                     // second child
                     
-                    execlp("chmod","chmod u+x","argv[i]",NULL);
+                    execlp("chmod","chmod u+r,u+w,u+x","argv[i]",NULL);
+                    execlp("chmod","chmod g=rw","argv[i]",NULL);
+                    execlp("chmod","chmod o-r,o-w,o-x","argv[i]",NULL);
                     
                     exit(0);
                 } else {
