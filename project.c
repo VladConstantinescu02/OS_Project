@@ -366,13 +366,16 @@ int main(int argc, char *argv[]) {
                 } else if (!(child2 = fork())) {
                     // second child
                     if (strstr(argv[i], ".c") != NULL) {
-                    printf("Is a c file\n");
+                    printf("Is a .c file\n");
+                    //execlp("sh","count.sh","argv[i]",NULL);
                     } 
                     exit(0);
                 } else {
                     // parent
                     wait(&child1);
+                    //printf("The process with PID %d has ended:", getpid());
                     wait(&child2);
+                    //printf("The process with PID %d has ended:", getpid());
             }
         
         }   
@@ -380,15 +383,15 @@ int main(int argc, char *argv[]) {
 
                 pid_t child3, child4;
                 if (!(child3 = fork())) {
-                // first child
-                printf("%s is a directory", argv[i]);
-                printf("\n");
-                printDirProperties(argv[i]);
-                printf("\n");
-                exit(0);
-                } else if (!(child4 = fork())) {
+                    //first child
+                    printf("%s is a directory", argv[i]);
+                    printf("\n");
+                    printDirProperties(argv[i]);
+                    printf("\n");
+                    exit(0);
+                }   else if (!(child4 = fork())) {
                     // second child
-                    printf("Is directory file\n");
+                    execlp("touch","touch","Dir_name.txt",NULL);
                     exit(0);
                 } else {
                     // parent
@@ -398,10 +401,27 @@ int main(int argc, char *argv[]) {
 
     } 
         if (S_ISLNK(stats.st_mode)) {
+
+            pid_t child5, child6;
+                if (!(child5 = fork())) {
+                // first child
                 printf("%s is a symbolic link", argv[i]);
                 printf("\n");
                 printSymLinkProperties(argv[i]);
-                printf("\n");          
+                printf("\n"); 
+                exit(0);
+                } else if (!(child6 = fork())) {
+                    // second child
+                    
+                    execlp("chmod","chmod u+x","argv[i]",NULL);
+                    
+                    exit(0);
+                } else {
+                    // parent
+                    wait(&child5);
+                    wait(&child6);
+            }
+                         
         }  
 
 
