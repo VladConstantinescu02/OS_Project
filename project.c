@@ -1,11 +1,14 @@
 #include <stdio.h>
 #include <string.h>
-#include <stdlib.h>
-#include <stdbool.h>
-#include <unistd.h>
+#include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/wait.h>
+#include <limits.h>
+#include <unistd.h>
 #include <dirent.h>
+#include <fcntl.h>
 #include <time.h>
+#include <stdlib.h>
 
 void printFileProperties(char *input) {    
     struct stat info;
@@ -320,23 +323,38 @@ void printDirProperties(char *dirname) {
         return;
     }
 
-       while( (entry=readdir(directory)) && (readdir(directory)!=NULL) )
-    {
+       while(readdir(directory)!=NULL) {
         char cpy[100];
 
         strcpy(cpy,entry->d_name);
-        if ((strcmp(&cpy[strlen(entry->d_name)-1],"c")) && (strcmp(&cpy[strlen(entry->d_name)-2],".")))      
+        if ((strcmp(&cpy[strlen(entry->d_name)-1],"c")) && (strcmp(&cpy[strlen(entry->d_name)-2],".")))  {    
         
         Cfiles++;
+   
+        }
     }
-    printf("Number of C files is %d\n",Cfiles);
+
     closedir(directory);
+    printf("Number of C files is %d\n",Cfiles);
     break;
         
    }
 }
 
+int computeScore(int errors, int warnings) {
+    int score;
 
+    if (errors == 0 && warnings == 0) {
+        score = 10;
+    } else if (errors >= 1) {
+        score = 1;
+    } else if (errors == 0 && warnings >= 10) {
+        score = 2;
+    } else if (errors == 0 && warnings == 10) {
+        score = 2 + 8 * ((10 - warnings) / 10);
+    }
+    return score;
+}
 
 int main(int argc, char *argv[]) { 
     
@@ -353,46 +371,78 @@ int main(int argc, char *argv[]) {
         return 1;
     } else {
 
-        if (S_ISREG(stats.st_mode)) { 
-
-                pid_t child1, child2;
-                 int pfd[2];
-                if (!(child1 = fork())) {
-                // first child
-                printf("%s is a regular file", argv[i]);
-                printf("\n");
-                printFileProperties(argv[i]);
-                printf("\n");
-                exit(0);
-                } else if (!(child2 = fork())) {
-                    // second child
-                    if (strstr(argv[i], ".c") != NULL) {
-                
-                    if(pipe(pfd)<0) {
-	                    perror("Pipe creation error\n");
-	                    exit(1);
-	                    }
-                    close(pfd[0]);
-                    //write(pfd[1],buff,len);
-
-                    close(pfd[1]);
-                    exit(0);
+            if (S_ISREG(stats.st_mode)) { 
                     
-                    } 
-                    exit(0);
+                    pid_t child1, child2;
+                    int pfd[2];
+                    char buff[1024];
+
+                    if (pipe(pfd) == -1) {
+                        perror("pipe");
+                        exit(EXIT_FAILURE);
+                    }
+
+                        if (!(child1 = fork())) {
+                        // First child process
+                            printf("%s is a regular file\n", argv[i]);
+                            printFileProperties(argv[i]);
+                            printf("\n");
+                            exit(0);
+                        } else if ((child2 = fork()) < 0) {
+                            // Error creating second child process
+                            printf("An error has occurred when creating the child process\n");
+                            } else if (child2 == 0) {
+                                // Second child process
+                                sleep(2);
+                                close(pfd[0]); 
+
+                                if (strstr(argv[i], ".c") != NULL) {
+                        
+                                if (dup2(pfd[1], STDOUT_FILENO) == -1) {
+                                    perror("dup2");
+                                    exit(EXIT_FAILURE);
+                                }
+
+                            char *args[] = {"bash", "test.sh", argv[i], "error.txt", NULL};
+                            execv("/bin/bash", args);
+                            exit(0);
                 } else {
-                    close(pfd[1]);
-
-                    //read(pfd[0],buff,len);
-
-                    close(pfd[0]);
-                    // parent
-                    wait(&child1);
-                    wait(&child2);
     
+                    char *args[] = {"bash", "count_line.sh", argv[i], NULL};
+                    execv("/bin/bash", args);
+                    exit(0);
+                }
             }
-        
-        }   
+            // Parent process
+
+            close(pfd[1]); // Close the writing end of the pipe
+
+            int errors, warnings, score;
+
+            FILE *fout = fopen("score.txt", "w");
+                if (fout == NULL) {
+                perror("fopen");
+                exit(EXIT_FAILURE);
+        }
+
+                ssize_t num_read;
+                while ((num_read = read(pfd[0], buff, sizeof(buff))) > 0) {
+                sscanf(buff,"errors = %d", &errors);
+                sscanf(buff,"warnings = %d", &warnings);
+                score = computeScore(errors, warnings);
+                fprintf(fout, "%s:%d\n", argv[i], score);
+                printf("The score was printed in the file 'score.txt'\n");
+    }
+
+    fclose(fout);
+
+
+    wait(&child1);
+    printf("The PID of the child process 1 is: %d \n", (int)getpid());
+    wait(&child2);
+    printf("The PID of the child process 2 is: %d \n", (int)getpid());
+}
+    
         if (S_ISDIR(stats.st_mode)) {
 
                 pid_t child3, child4;
@@ -410,7 +460,9 @@ int main(int argc, char *argv[]) {
                 } else {
                     // parent
                     wait(&child3);
+                    printf("The PID of the child process 3 is: %d \n", (int)getpid());
                     wait(&child4);
+                    printf("The PID of the child process 4 is: %d \n", (int)getpid());
             }
 
     } 
@@ -426,16 +478,19 @@ int main(int argc, char *argv[]) {
                 exit(0);
                 } else if (!(child6 = fork())) {
                     // second child
+                    char *args[] = {"chmod", "750", argv[i], NULL};
+                    execv("chmod", args);
+                    exit(0);
                     
-                    execlp("chmod","chmod u+r,u+w,u+x","argv[i]",NULL);
-                    execlp("chmod","chmod g=rw","argv[i]",NULL);
-                    execlp("chmod","chmod o-r,o-w,o-x","argv[i]",NULL);
                     
+
                     exit(0);
                 } else {
                     // parent
                     wait(&child5);
+                    printf("The PID of the child process 5 is: %d \n", (int)getpid());
                     wait(&child6);
+                    printf("The PID of the child process 6 is: %d \n", (int)getpid());
             }
                          
         }  
